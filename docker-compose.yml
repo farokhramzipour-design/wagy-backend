@@ -19,7 +19,7 @@ services:
       - postgres_data:/var/lib/postgresql/data/
     environment:
       - POSTGRES_USER=wagy_user
-      - POSTGRES_PASSWORD=wagy_password
+      - POSTGRES_PASSWORD=Behnam_2829
       - POSTGRES_DB=wagy_db
     ports:
       - "5432:5432"
