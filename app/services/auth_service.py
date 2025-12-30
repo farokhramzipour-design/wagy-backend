@@ -15,6 +15,9 @@ from app.services.email_service import send_otp_email
 # In-memory OTP storage (For production, use Redis)
 otp_storage = {}
 
+# In-memory Token Blacklist (For production, use Redis)
+token_blacklist = set()
+
 MOBILE_OTP_URL = "https://api-staging.hyperlikes.ir/public/core/apiv1/custom_codes"
 
 def generate_otp(length=6):
@@ -205,3 +208,7 @@ def authenticate_google_user(session: Session, token: str) -> AuthResponse:
     session.commit()
     
     return create_auth_response(new_user)
+
+def logout_user(token: str):
+    token_blacklist.add(token)
+    return {"message": "Successfully logged out"}
