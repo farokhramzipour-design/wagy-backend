@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+fastapi-sso
+sqlmodel
+python-dotenv
+httpx
+psycopg2-binary
+python-jose[cryptography]
+passlib[bcrypt]
+google-auth
