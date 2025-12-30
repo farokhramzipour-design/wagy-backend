@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, Request
 from fastapi_sso.sso.google import GoogleSSO
 from sqlmodel import Session
 from app.db.session import get_session
-from app.schemas.auth import GoogleAuthRequest, AuthResponse, EmailLoginRequest, VerifyOtpRequest
-from app.services.auth_service import authenticate_google_user, request_otp, verify_otp_login
+from app.schemas.auth import GoogleAuthRequest, AuthResponse, EmailLoginRequest, VerifyOtpRequest, MobileLoginRequest, VerifyMobileOtpRequest
+from app.services.auth_service import authenticate_google_user, request_otp, verify_otp_login, request_mobile_otp, verify_mobile_otp_login
 from app.core.config import settings
 
 router = APIRouter()
@@ -43,3 +43,17 @@ async def verify_otp(request: VerifyOtpRequest, session: Session = Depends(get_s
     Step 2: Verify OTP and login/register
     """
     return verify_otp_login(session, request.email, request.otp)
+
+@router.post("/mobile/login")
+async def mobile_login(request: MobileLoginRequest):
+    """
+    Step 1: Request OTP for mobile login/registration
+    """
+    return request_mobile_otp(request.phone_number)
+
+@router.post("/mobile/verify", response_model=AuthResponse)
+async def verify_mobile_otp(request: VerifyMobileOtpRequest, session: Session = Depends(get_session)):
+    """
+    Step 2: Verify OTP and login/register
+    """
+    return verify_mobile_otp_login(session, request.phone_number, request.otp)

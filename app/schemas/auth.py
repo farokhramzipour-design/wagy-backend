@@ -12,6 +12,13 @@ class VerifyOtpRequest(BaseModel):
     email: EmailStr
     otp: str
 
+class MobileLoginRequest(BaseModel):
+    phone_number: str
+
+class VerifyMobileOtpRequest(BaseModel):
+    phone_number: str
+    otp: str
+
 class UserResponse(BaseModel):
     id: UUID
     email: Optional[str]
