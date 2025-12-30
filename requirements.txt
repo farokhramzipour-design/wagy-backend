@@ -11,3 +11,4 @@ google-auth
 requests
 alembic
 fastapi-mail
+python-multipart
