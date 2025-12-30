@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, Request
 from fastapi_sso.sso.google import GoogleSSO
 from sqlmodel import Session
 from app.db.session import get_session
-from app.schemas.auth import GoogleAuthRequest, AuthResponse
-from app.services.auth_service import authenticate_google_user
+from app.schemas.auth import GoogleAuthRequest, AuthResponse, EmailLoginRequest, VerifyOtpRequest
+from app.services.auth_service import authenticate_google_user, request_otp, verify_otp_login
 from app.core.config import settings
 
 router = APIRouter()
@@ -29,3 +29,17 @@ async def google_callback(request: Request, session: Session = Depends(get_sessi
 @router.post("/google", response_model=AuthResponse)
 async def google_auth(request: GoogleAuthRequest, session: Session = Depends(get_session)):
     return authenticate_google_user(session, request.id_token)
+
+@router.post("/email/login")
+async def email_login(request: EmailLoginRequest, session: Session = Depends(get_session)):
+    """
+    Step 1: Request OTP for email login/registration
+    """
+    return await request_otp(session, request.email)
+
+@router.post("/email/verify", response_model=AuthResponse)
+async def verify_otp(request: VerifyOtpRequest, session: Session = Depends(get_session)):
+    """
+    Step 2: Verify OTP and login/register
+    """
+    return verify_otp_login(session, request.email, request.otp)
