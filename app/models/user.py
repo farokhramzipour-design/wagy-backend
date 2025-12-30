@@ -31,8 +31,12 @@ class User(SQLModel, table=True):
     status: UserStatus = Field(default=UserStatus.ACTIVE)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-
+    
+    # Relationship to auth providers
     auth_providers: List["AuthProvider"] = Relationship(back_populates="user")
+    
+    # Relationship to sitter profile
+    sitter_profile: Optional["SitterProfile"] = Relationship(back_populates="user")
 
 class AuthProvider(SQLModel, table=True):
     __tablename__ = "auth_providers"
