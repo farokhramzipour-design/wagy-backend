@@ -20,6 +20,7 @@ def get_or_create_profile(session: Session, user_id: UUID) -> SitterProfile:
             full_name=user.full_name or "",
             phone=user.phone_number or "",
             email=user.email,
+            profile_photo=user.avatar_url,
             date_of_birth=user.created_at.date(), # Placeholder, needs update
             onboarding_step=1 # Start at step 1
         )
