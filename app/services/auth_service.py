@@ -1,5 +1,6 @@
 import random
 import string
+import requests as http_requests
 from datetime import datetime, timedelta
 from sqlmodel import Session, select
 from fastapi import HTTPException
@@ -13,6 +14,8 @@ from app.services.email_service import send_otp_email
 
 # In-memory OTP storage (For production, use Redis)
 otp_storage = {}
+
+MOBILE_OTP_URL = "https://api-staging.hyperlikes.ir/public/core/apiv1/custom_codes"
 
 def generate_otp(length=6):
     return ''.join(random.choices(string.digits, k=length))
@@ -64,6 +67,49 @@ def verify_otp_login(session: Session, email: str, otp: str) -> AuthResponse:
             user_id=user.id,
             provider=AuthProviderEnum.EMAIL,
             provider_uid=email
+        )
+        session.add(auth_provider)
+        session.commit()
+    
+    return create_auth_response(user)
+
+def request_mobile_otp(phone_number: str):
+    payload = {'phoneNumber': phone_number}
+    try:
+        response = http_requests.post(MOBILE_OTP_URL, data=payload)
+        response.raise_for_status()
+        return {"message": "OTP sent successfully"}
+    except http_requests.RequestException as e:
+        raise HTTPException(status_code=400, detail=f"Failed to send OTP: {str(e)}")
+
+def verify_mobile_otp_login(session: Session, phone_number: str, otp: str) -> AuthResponse:
+    payload = {'phoneNumber': phone_number, 'code': otp}
+    try:
+        response = http_requests.put(MOBILE_OTP_URL, data=payload)
+        if response.status_code != 200:
+             raise HTTPException(status_code=400, detail="Invalid OTP")
+    except http_requests.RequestException as e:
+        raise HTTPException(status_code=400, detail=f"Failed to verify OTP: {str(e)}")
+
+    # Check if user exists by phone number
+    statement = select(User).where(User.phone_number == phone_number)
+    user = session.exec(statement).first()
+    
+    if not user:
+        # Register new user
+        user = User(
+            phone_number=phone_number,
+            is_phone_verified=True
+        )
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        
+        # Add OTP Auth Provider
+        auth_provider = AuthProvider(
+            user_id=user.id,
+            provider=AuthProviderEnum.OTP,
+            provider_uid=phone_number
         )
         session.add(auth_provider)
         session.commit()
