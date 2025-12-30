@@ -1,3 +1,6 @@
+import random
+import string
+from datetime import datetime, timedelta
 from sqlmodel import Session, select
 from fastapi import HTTPException
 from google.oauth2 import id_token
@@ -6,6 +9,66 @@ from app.core.config import settings
 from app.models.user import User, AuthProvider, AuthProviderEnum
 from app.core.security import create_access_token, create_refresh_token
 from app.schemas.auth import AuthResponse, AuthData, UserResponse, Tokens
+from app.services.email_service import send_otp_email
+
+# In-memory OTP storage (For production, use Redis)
+otp_storage = {}
+
+def generate_otp(length=6):
+    return ''.join(random.choices(string.digits, k=length))
+
+async def request_otp(session: Session, email: str):
+    otp = generate_otp()
+    # Store OTP with expiration (e.g., 5 minutes)
+    otp_storage[email] = {
+        "otp": otp,
+        "expires_at": datetime.utcnow() + timedelta(minutes=5)
+    }
+    
+    # Send email
+    await send_otp_email(email, otp)
+    return {"message": "OTP sent successfully"}
+
+def verify_otp_login(session: Session, email: str, otp: str) -> AuthResponse:
+    stored_data = otp_storage.get(email)
+    
+    if not stored_data:
+        raise HTTPException(status_code=400, detail="OTP not requested or expired")
+    
+    if datetime.utcnow() > stored_data["expires_at"]:
+        del otp_storage[email]
+        raise HTTPException(status_code=400, detail="OTP expired")
+        
+    if stored_data["otp"] != otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+    
+    # OTP Verified. Clear it.
+    del otp_storage[email]
+    
+    # Check if user exists
+    statement = select(User).where(User.email == email)
+    user = session.exec(statement).first()
+    
+    if not user:
+        # Register new user
+        user = User(
+            email=email,
+            is_email_verified=True
+        )
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        
+        # Add Email Auth Provider (optional, since email is on user record, but good for consistency)
+        auth_provider = AuthProvider(
+            user_id=user.id,
+            provider=AuthProviderEnum.EMAIL,
+            provider_uid=email
+        )
+        session.add(auth_provider)
+        session.commit()
+    
+    return create_auth_response(user)
 
 def verify_google_token(token: str):
     try:

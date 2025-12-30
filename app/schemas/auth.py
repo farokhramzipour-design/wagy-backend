@@ -1,9 +1,16 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Optional
 from uuid import UUID
 
 class GoogleAuthRequest(BaseModel):
     id_token: str
+
+class EmailLoginRequest(BaseModel):
+    email: EmailStr
+
+class VerifyOtpRequest(BaseModel):
+    email: EmailStr
+    otp: str
 
 class UserResponse(BaseModel):
     id: UUID
