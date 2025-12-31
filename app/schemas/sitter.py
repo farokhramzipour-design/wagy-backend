@@ -1,6 +1,6 @@
 from pydantic import BaseModel, HttpUrl
 from typing import Optional, List, Dict
-from datetime import date
+from datetime import date, datetime
 from uuid import UUID
 from app.models.sitter import (
     GovernmentIdType, BackgroundCheckStatus, AvailabilityType, HomeType, HomeOwnership,
@@ -98,7 +98,7 @@ class SitterProfileResponse(BaseModel):
     full_name: Optional[str]
     onboarding_step: int
     background_check_status: BackgroundCheckStatus
-    created_at: date
+    created_at: datetime
     # Include other fields as needed for the frontend to repopulate forms
     date_of_birth: Optional[date]
     profile_photo: Optional[str]
