@@ -19,7 +19,8 @@ if config.config_file_name is not None:
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 from sqlmodel import SQLModel
-from app.models.user import User, AuthProvider  # Import all your models here
+from app.models.user import User, AuthProvider
+from app.models.sitter import SitterProfile # Import SitterProfile
 from app.core.config import settings
 
 target_metadata = SQLModel.metadata
