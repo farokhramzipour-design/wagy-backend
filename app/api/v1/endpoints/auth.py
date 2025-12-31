@@ -3,8 +3,9 @@ from fastapi_sso.sso.google import GoogleSSO
 from sqlmodel import Session
 from app.db.session import get_session
 from app.schemas.auth import GoogleAuthRequest, AuthResponse, EmailLoginRequest, VerifyOtpRequest, MobileLoginRequest, VerifyMobileOtpRequest
-from app.services.auth_service import authenticate_google_user, request_otp, verify_otp_login, request_mobile_otp, verify_mobile_otp_login
+from app.services.auth_service import authenticate_google_user, request_otp, verify_otp_login, request_mobile_otp, verify_mobile_otp_login, logout_user
 from app.core.config import settings
+from app.core.security import get_current_user_token
 
 router = APIRouter()
 
@@ -57,3 +58,10 @@ async def verify_mobile_otp(request: VerifyMobileOtpRequest, session: Session = 
     Step 2: Verify OTP and login/register
     """
     return verify_mobile_otp_login(session, request.phone_number, request.otp)
+
+@router.post("/logout")
+async def logout(token: str = Depends(get_current_user_token)):
+    """
+    Logout user by blacklisting the token
+    """
+    return logout_user(token)
