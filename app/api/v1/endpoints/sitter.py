@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from sqlmodel import Session
 from app.db.session import get_session
 from app.core.security import get_current_user_token
@@ -11,6 +11,8 @@ from app.schemas.sitter import (
     SitterContentUpdate, SitterPricingUpdate, SitterProfileResponse
 )
 from app.services import sitter_service
+import shutil
+import os
 
 router = APIRouter()
 
@@ -38,6 +40,40 @@ async def update_personal_info(
     session: Session = Depends(get_session)
 ):
     return sitter_service.update_personal_info(session, user_id, data)
+
+@router.post("/upload-profile-photo", response_model=SitterProfileResponse)
+async def upload_profile_photo(
+    file: UploadFile = File(...),
+    user_id: UUID = Depends(get_current_user_id),
+    session: Session = Depends(get_session)
+):
+    # Ensure upload directory exists
+    upload_dir = "uploads/profile_photos"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Clean up previous photos for this user
+    # Remove any existing file that starts with the user_id to avoid duplicates (e.g. .jpg vs .png)
+    for filename in os.listdir(upload_dir):
+        if filename.startswith(str(user_id)):
+            file_path = os.path.join(upload_dir, filename)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+    
+    # Generate file path
+    # Use os.path.splitext to safely get extension
+    _, file_extension = os.path.splitext(file.filename)
+    if not file_extension:
+        file_extension = ".jpg" # Default fallback
+        
+    file_name = f"{user_id}{file_extension}"
+    file_path = f"{upload_dir}/{file_name}"
+    
+    # Save file
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    # Update profile with file path
+    return sitter_service.update_profile_photo(session, user_id, file_path)
 
 @router.patch("/location", response_model=SitterProfileResponse)
 async def update_location(
