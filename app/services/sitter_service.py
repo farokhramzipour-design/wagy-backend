@@ -8,6 +8,7 @@ from app.schemas.sitter import (
     SitterWalkingUpdate, SitterExperienceUpdate, SitterHomeUpdate,
     SitterContentUpdate, SitterPricingUpdate
 )
+from typing import List
 
 def get_or_create_profile(session: Session, user_id: UUID) -> SitterProfile:
     statement = select(SitterProfile).where(SitterProfile.user_id == user_id)
@@ -39,9 +40,9 @@ def update_personal_info(session: Session, user_id: UUID, data: SitterPersonalIn
     profile = get_or_create_profile(session, user_id)
     for key, value in data.dict(exclude_unset=True).items():
         setattr(profile, key, value)
-
+    
     update_step(profile, 2) # Completed Step 2
-
+    
     session.add(profile)
     session.commit()
     session.refresh(profile)
@@ -55,13 +56,29 @@ def update_profile_photo(session: Session, user_id: UUID, photo_path: str):
     session.refresh(profile)
     return profile
 
+def add_gallery_photos(session: Session, user_id: UUID, photo_paths: List[str]):
+    profile = get_or_create_profile(session, user_id)
+    
+    # Ensure photo_gallery is a list
+    current_gallery = list(profile.photo_gallery) if profile.photo_gallery else []
+    
+    if len(current_gallery) + len(photo_paths) > 10:
+        raise HTTPException(status_code=400, detail="Gallery cannot exceed 10 photos")
+        
+    profile.photo_gallery = current_gallery + photo_paths
+    
+    session.add(profile)
+    session.commit()
+    session.refresh(profile)
+    return profile
+
 def update_location(session: Session, user_id: UUID, data: SitterLocationUpdate):
     profile = get_or_create_profile(session, user_id)
     for key, value in data.dict(exclude_unset=True).items():
         setattr(profile, key, value)
-
+    
     update_step(profile, 3) # Completed Step 3
-
+    
     session.add(profile)
     session.commit()
     session.refresh(profile)
@@ -71,9 +88,9 @@ def update_boarding_service(session: Session, user_id: UUID, data: SitterBoardin
     profile = get_or_create_profile(session, user_id)
     for key, value in data.dict(exclude_unset=True).items():
         setattr(profile, key, value)
-
+    
     update_step(profile, 5) # Completed Step 5 (Services)
-
+    
     session.add(profile)
     session.commit()
     session.refresh(profile)
@@ -83,9 +100,9 @@ def update_walking_service(session: Session, user_id: UUID, data: SitterWalkingU
     profile = get_or_create_profile(session, user_id)
     for key, value in data.dict(exclude_unset=True).items():
         setattr(profile, key, value)
-
+    
     update_step(profile, 5) # Completed Step 5 (Services)
-
+    
     session.add(profile)
     session.commit()
     session.refresh(profile)
@@ -95,9 +112,9 @@ def update_experience(session: Session, user_id: UUID, data: SitterExperienceUpd
     profile = get_or_create_profile(session, user_id)
     for key, value in data.dict(exclude_unset=True).items():
         setattr(profile, key, value)
-
+    
     update_step(profile, 6) # Completed Step 6
-
+    
     session.add(profile)
     session.commit()
     session.refresh(profile)
@@ -107,9 +124,9 @@ def update_home(session: Session, user_id: UUID, data: SitterHomeUpdate):
     profile = get_or_create_profile(session, user_id)
     for key, value in data.dict(exclude_unset=True).items():
         setattr(profile, key, value)
-
+    
     update_step(profile, 7) # Completed Step 7
-
+    
     session.add(profile)
     session.commit()
     session.refresh(profile)
@@ -119,9 +136,9 @@ def update_content(session: Session, user_id: UUID, data: SitterContentUpdate):
     profile = get_or_create_profile(session, user_id)
     for key, value in data.dict(exclude_unset=True).items():
         setattr(profile, key, value)
-
+    
     update_step(profile, 9) # Completed Step 9
-
+    
     session.add(profile)
     session.commit()
     session.refresh(profile)
@@ -131,7 +148,7 @@ def update_pricing(session: Session, user_id: UUID, data: SitterPricingUpdate):
     profile = get_or_create_profile(session, user_id)
     for key, value in data.dict(exclude_unset=True).items():
         setattr(profile, key, value)
-
+    
     update_step(profile, 10) # Completed Step 10
 
     session.add(profile)
