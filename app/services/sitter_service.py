@@ -6,9 +6,10 @@ from app.models.user import User
 from app.schemas.sitter import (
     SitterPersonalInfoUpdate, SitterLocationUpdate, SitterBoardingUpdate,
     SitterWalkingUpdate, SitterExperienceUpdate, SitterHomeUpdate,
-    SitterContentUpdate, SitterPricingUpdate
+    SitterContentUpdate, SitterPricingUpdate, SitterGalleryDelete
 )
 from typing import List
+import os
 
 def get_or_create_profile(session: Session, user_id: UUID) -> SitterProfile:
     statement = select(SitterProfile).where(SitterProfile.user_id == user_id)
@@ -67,6 +68,40 @@ def add_gallery_photos(session: Session, user_id: UUID, photo_paths: List[str]):
         
     profile.photo_gallery = current_gallery + photo_paths
     
+    session.add(profile)
+    session.commit()
+    session.refresh(profile)
+    return profile
+
+def delete_gallery_photos(session: Session, user_id: UUID, data: SitterGalleryDelete):
+    profile = get_or_create_profile(session, user_id)
+    current_gallery = list(profile.photo_gallery) if profile.photo_gallery else []
+    
+    # Filter out photos to be deleted
+    # We need to handle both full URLs and relative paths if the frontend sends full URLs
+    # Assuming the frontend sends the exact string it received
+    
+    # Helper to extract relative path if it's a full URL
+    def get_relative_path(path_or_url: str) -> str:
+        if "uploads/gallery_photos/" in path_or_url:
+            return "uploads/gallery_photos/" + path_or_url.split("uploads/gallery_photos/")[-1]
+        return path_or_url
+
+    photos_to_delete_relative = [get_relative_path(p) for p in data.photos]
+    
+    new_gallery = []
+    for photo in current_gallery:
+        if photo not in photos_to_delete_relative:
+            new_gallery.append(photo)
+        else:
+            # Delete file from disk
+            if os.path.exists(photo):
+                try:
+                    os.remove(photo)
+                except OSError:
+                    pass # Log error or ignore if file doesn't exist
+                    
+    profile.photo_gallery = new_gallery
     session.add(profile)
     session.commit()
     session.refresh(profile)

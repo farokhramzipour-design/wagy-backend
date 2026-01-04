@@ -8,7 +8,8 @@ from uuid import UUID, uuid4
 from app.schemas.sitter import (
     SitterPersonalInfoUpdate, SitterLocationUpdate, SitterBoardingUpdate,
     SitterWalkingUpdate, SitterExperienceUpdate, SitterHomeUpdate,
-    SitterContentUpdate, SitterPricingUpdate, SitterProfileResponse
+    SitterContentUpdate, SitterPricingUpdate, SitterProfileResponse,
+    SitterGalleryDelete
 )
 from app.services import sitter_service
 import shutil
@@ -138,6 +139,21 @@ async def upload_gallery_photos(
             if os.path.exists(path):
                 os.remove(path)
         raise e
+    
+    # Return full URLs
+    if profile.photo_gallery:
+        profile.photo_gallery = [get_full_url(request, p) for p in profile.photo_gallery]
+        
+    return profile
+
+@router.post("/delete-gallery-photos", response_model=SitterProfileResponse)
+async def delete_gallery_photos(
+    request: Request,
+    data: SitterGalleryDelete,
+    user_id: UUID = Depends(get_current_user_id),
+    session: Session = Depends(get_session)
+):
+    profile = sitter_service.delete_gallery_photos(session, user_id, data)
     
     # Return full URLs
     if profile.photo_gallery:
