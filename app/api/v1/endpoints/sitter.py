@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Request
 from sqlmodel import Session
 from app.db.session import get_session
 from app.core.security import get_current_user_token
@@ -28,10 +28,16 @@ def get_current_user_id(token: str = Depends(get_current_user_token)) -> UUID:
 
 @router.get("/me", response_model=SitterProfileResponse)
 async def get_my_profile(
+    request: Request,
     user_id: UUID = Depends(get_current_user_id),
     session: Session = Depends(get_session)
 ):
-    return sitter_service.get_profile(session, user_id)
+    profile = sitter_service.get_profile(session, user_id)
+    if profile.profile_photo and not profile.profile_photo.startswith("http"):
+         # Construct full URL for local files
+         base_url = str(request.base_url).rstrip("/")
+         profile.profile_photo = f"{base_url}/{profile.profile_photo}"
+    return profile
 
 @router.patch("/personal-info", response_model=SitterProfileResponse)
 async def update_personal_info(
@@ -43,6 +49,7 @@ async def update_personal_info(
 
 @router.post("/upload-profile-photo", response_model=SitterProfileResponse)
 async def upload_profile_photo(
+    request: Request,
     file: UploadFile = File(...),
     user_id: UUID = Depends(get_current_user_id),
     session: Session = Depends(get_session)
@@ -73,7 +80,14 @@ async def upload_profile_photo(
         shutil.copyfileobj(file.file, buffer)
         
     # Update profile with file path
-    return sitter_service.update_profile_photo(session, user_id, file_path)
+    profile = sitter_service.update_profile_photo(session, user_id, file_path)
+    
+    # Return full URL in response
+    if profile.profile_photo and not profile.profile_photo.startswith("http"):
+         base_url = str(request.base_url).rstrip("/")
+         profile.profile_photo = f"{base_url}/{profile.profile_photo}"
+         
+    return profile
 
 @router.patch("/location", response_model=SitterProfileResponse)
 async def update_location(
