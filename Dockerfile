@@ -28,5 +28,5 @@ COPY . .
 EXPOSE 8000
 
 # Command to run the application
-# Using gunicorn with uvicorn workers for production
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run alembic upgrade before starting the app
+CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"]
