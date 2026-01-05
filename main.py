@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.db.session import create_db_and_tables
 from app.api.v1.api import api_router
+from app.db.migration_fix import run_fix
 import os
 
 app = FastAPI(
@@ -32,6 +33,8 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.on_event("startup")
 def on_startup():
+    # Run the migration fix before creating tables (or after, order matters less for ALTER)
+    run_fix()
     create_db_and_tables()
 
 app.include_router(api_router, prefix="/api/v1")
