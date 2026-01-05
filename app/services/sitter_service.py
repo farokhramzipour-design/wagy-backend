@@ -82,6 +82,7 @@ def update_personal_info(session: Session, user_id: UUID, data: SitterPersonalIn
     # If phone matches user.phone_number, we can sync it to profile
     if user.phone_number:
         profile.phone = user.phone_number
+        profile.is_phone_verified = True # Ensure this is true if matching user's verified phone
 
     update_step(profile, 2) # Completed Step 2
     
@@ -121,6 +122,7 @@ def verify_profile_phone_update(session: Session, user_id: UUID, phone: str, otp
     
     profile = get_or_create_profile(session, user_id)
     profile.phone = phone
+    profile.is_phone_verified = True # Set flag to true
     session.add(profile)
     
     session.commit()
