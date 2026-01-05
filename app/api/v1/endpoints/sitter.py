@@ -12,11 +12,16 @@ from app.schemas.sitter import (
     SitterGalleryDelete
 )
 from app.services import sitter_service
+from pydantic import BaseModel
 import shutil
 import os
 from typing import List
 
 router = APIRouter()
+
+class VerifyPhoneUpdate(BaseModel):
+    phone: str
+    otp: str
 
 def get_current_user_id(token: str = Depends(get_current_user_token)) -> UUID:
     try:
@@ -50,6 +55,9 @@ async def get_my_profile(
     if profile.profile_photo:
          profile.profile_photo = get_full_url(request, profile.profile_photo)
     
+    if profile.government_id_image:
+         profile.government_id_image = get_full_url(request, profile.government_id_image)
+    
     if profile.photo_gallery:
         profile.photo_gallery = [get_full_url(request, p) for p in profile.photo_gallery]
         
@@ -62,6 +70,14 @@ async def update_personal_info(
     session: Session = Depends(get_session)
 ):
     return sitter_service.update_personal_info(session, user_id, data)
+
+@router.post("/verify-phone-update", response_model=SitterProfileResponse)
+async def verify_phone_update(
+    data: VerifyPhoneUpdate,
+    user_id: UUID = Depends(get_current_user_id),
+    session: Session = Depends(get_session)
+):
+    return sitter_service.verify_profile_phone_update(session, user_id, data.phone, data.otp)
 
 @router.post("/upload-profile-photo", response_model=SitterProfileResponse)
 async def upload_profile_photo(
@@ -99,6 +115,45 @@ async def upload_profile_photo(
     # Return full URL in response
     if profile.profile_photo:
          profile.profile_photo = get_full_url(request, profile.profile_photo)
+         
+    return profile
+
+@router.post("/upload-government-id", response_model=SitterProfileResponse)
+async def upload_government_id(
+    request: Request,
+    file: UploadFile = File(...),
+    user_id: UUID = Depends(get_current_user_id),
+    session: Session = Depends(get_session)
+):
+    # Ensure upload directory exists
+    upload_dir = "uploads/government_ids"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Clean up previous photos for this user
+    for filename in os.listdir(upload_dir):
+        if filename.startswith(str(user_id)):
+            file_path = os.path.join(upload_dir, filename)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+    
+    # Generate file path
+    _, file_extension = os.path.splitext(file.filename)
+    if not file_extension:
+        file_extension = ".jpg"
+        
+    file_name = f"{user_id}{file_extension}"
+    file_path = f"{upload_dir}/{file_name}"
+    
+    # Save file
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    # Update profile with file path
+    profile = sitter_service.update_government_id_image(session, user_id, file_path)
+    
+    # Return full URL in response
+    if profile.government_id_image:
+         profile.government_id_image = get_full_url(request, profile.government_id_image)
          
     return profile
 

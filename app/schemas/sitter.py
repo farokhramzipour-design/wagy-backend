@@ -13,8 +13,14 @@ class SitterPersonalInfoUpdate(BaseModel):
     full_name: str
     date_of_birth: date
     profile_photo: Optional[str] = None # URL
+    phone: Optional[str] = None # Added phone
     emergency_contact_name: str
     emergency_contact_phone: str
+    address: Optional[str] = None
+    postal_code: Optional[str] = None # Added postal_code
+    government_id_type: Optional[GovernmentIdType] = None
+    government_id_number: Optional[str] = None
+    government_id_image: Optional[str] = None
 
 # --- Step 3: Location & Availability ---
 class SitterLocationUpdate(BaseModel):
@@ -111,6 +117,11 @@ class SitterProfileResponse(BaseModel):
     profile_photo: Optional[str]
     emergency_contact_name: Optional[str]
     emergency_contact_phone: Optional[str]
+    address: Optional[str]
+    postal_code: Optional[str] = None # Added postal_code
+    government_id_type: Optional[GovernmentIdType]
+    government_id_number: Optional[str]
+    government_id_image: Optional[str]
     
     # Location
     country: Optional[str]

@@ -8,6 +8,7 @@ from app.schemas.sitter import (
     SitterWalkingUpdate, SitterExperienceUpdate, SitterHomeUpdate,
     SitterContentUpdate, SitterPricingUpdate, SitterGalleryDelete
 )
+from app.services.auth_service import request_mobile_otp, verify_mobile_otp_login
 from typing import List
 import os
 
@@ -39,9 +40,49 @@ def update_step(profile: SitterProfile, step: int):
 
 def update_personal_info(session: Session, user_id: UUID, data: SitterPersonalInfoUpdate):
     profile = get_or_create_profile(session, user_id)
+    user = session.get(User, user_id)
+    
+    # Handle phone verification logic
+    if data.phone and data.phone != user.phone_number:
+        # If user is trying to update phone number
+        # We should trigger OTP verification.
+        # However, this function is a PATCH update. It expects the update to happen immediately.
+        # If we need OTP, we can't update immediately.
+        
+        # Option 1: Return an error saying "Phone verification required" and trigger OTP.
+        # But the frontend might expect a specific flow.
+        
+        # Let's assume the frontend calls a separate endpoint to verify the new phone first?
+        # Or, we can send OTP here and return a status indicating OTP sent.
+        
+        # But the prompt says: "if he or she didnt login with phone number should verify his phone number using otp"
+        
+        # Let's implement this:
+        # If phone is provided and different:
+        # 1. Send OTP to the new phone.
+        # 2. Do NOT update the phone in profile yet.
+        # 3. Return a message or status code indicating OTP sent.
+        
+        # But this function returns SitterProfileResponse.
+        # We might need to raise an HTTPException with a specific detail code that the frontend can handle.
+        
+        # Alternatively, we can just send the OTP and expect the user to call another endpoint to verify it.
+        # Let's try to send OTP and raise an exception or return a special response.
+        # Raising exception is cleaner for flow control if we want to stop the update.
+        
+        request_mobile_otp(data.phone)
+        raise HTTPException(status_code=403, detail="Phone number verification required. OTP sent to the new number.")
+        
+    # If phone is same or not provided, proceed with update
     for key, value in data.dict(exclude_unset=True).items():
+        if key == 'phone':
+             continue # Skip phone update here, it should be updated via verification or if it matches user.phone_number
         setattr(profile, key, value)
     
+    # If phone matches user.phone_number, we can sync it to profile
+    if user.phone_number:
+        profile.phone = user.phone_number
+
     update_step(profile, 2) # Completed Step 2
     
     session.add(profile)
@@ -49,9 +90,54 @@ def update_personal_info(session: Session, user_id: UUID, data: SitterPersonalIn
     session.refresh(profile)
     return profile
 
+def verify_profile_phone_update(session: Session, user_id: UUID, phone: str, otp: str):
+    # Verify OTP
+    # We can reuse verify_mobile_otp_login logic but we don't want to login, just verify.
+    # verify_mobile_otp_login does login/registration.
+    # We need a simple verify function.
+    
+    # Let's assume verify_mobile_otp_login verifies the OTP with the provider.
+    # We can extract the verification part or call the provider directly.
+    # Since verify_mobile_otp_login is coupled with login logic, let's duplicate the verification call here or refactor.
+    # I'll use the request logic directly here for simplicity as I can't easily refactor auth_service without reading it again fully.
+    # Actually I read it. verify_mobile_otp_login calls http_requests.put(MOBILE_OTP_URL, ...)
+    
+    import requests as http_requests
+    MOBILE_OTP_URL = "https://api-staging.hyperlikes.ir/public/core/apiv1/custom_codes"
+    
+    payload = {'phoneNumber': phone, 'code': otp}
+    try:
+        response = http_requests.put(MOBILE_OTP_URL, data=payload)
+        if response.status_code != 200:
+             raise HTTPException(status_code=400, detail="Invalid OTP")
+    except http_requests.RequestException as e:
+        raise HTTPException(status_code=400, detail=f"Failed to verify OTP: {str(e)}")
+        
+    # OTP Verified. Update User and Profile.
+    user = session.get(User, user_id)
+    user.phone_number = phone
+    user.is_phone_verified = True
+    session.add(user)
+    
+    profile = get_or_create_profile(session, user_id)
+    profile.phone = phone
+    session.add(profile)
+    
+    session.commit()
+    session.refresh(profile)
+    return profile
+
 def update_profile_photo(session: Session, user_id: UUID, photo_path: str):
     profile = get_or_create_profile(session, user_id)
     profile.profile_photo = photo_path
+    session.add(profile)
+    session.commit()
+    session.refresh(profile)
+    return profile
+
+def update_government_id_image(session: Session, user_id: UUID, photo_path: str):
+    profile = get_or_create_profile(session, user_id)
+    profile.government_id_image = photo_path
     session.add(profile)
     session.commit()
     session.refresh(profile)
