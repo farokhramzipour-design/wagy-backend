@@ -72,6 +72,7 @@ async def update_personal_info(session: Session, user_id: UUID, data: SitterPers
                 if matched:
                     profile.is_shahkar_verified = True
                 else:
+                    profile.is_shahkar_verified = False
                     raise HTTPException(status_code=400, detail="Phone number and national ID do not match")
                     
             except HTTPException as e:
