@@ -13,6 +13,7 @@ def run_fix():
             conn.execute(text("ALTER TABLE sitter_profiles ADD COLUMN IF NOT EXISTS address VARCHAR;"))
             conn.execute(text("ALTER TABLE sitter_profiles ADD COLUMN IF NOT EXISTS postal_code VARCHAR;"))
             conn.execute(text("ALTER TABLE sitter_profiles ADD COLUMN IF NOT EXISTS is_phone_verified BOOLEAN DEFAULT FALSE;"))
+            conn.execute(text("ALTER TABLE sitter_profiles ADD COLUMN IF NOT EXISTS is_shahkar_verified BOOLEAN DEFAULT FALSE;"))
             conn.commit()
             logger.info("Migration fix completed successfully.")
     except Exception as e:

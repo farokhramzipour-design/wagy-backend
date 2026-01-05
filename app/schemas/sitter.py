@@ -123,7 +123,8 @@ class SitterProfileResponse(BaseModel):
     government_id_number: Optional[str]
     government_id_image: Optional[str]
     id_verified: bool
-    is_phone_verified: bool # Added
+    is_phone_verified: bool
+    is_shahkar_verified: bool # Added
     
     # Location
     country: Optional[str]

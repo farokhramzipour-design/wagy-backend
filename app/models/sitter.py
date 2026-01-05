@@ -101,7 +101,8 @@ class SitterProfile(SQLModel, table=True):
     address: Optional[str] = None
     postal_code: Optional[str] = None
     id_verified: bool = Field(default=False)
-    is_phone_verified: bool = Field(default=False) # Added
+    is_phone_verified: bool = Field(default=False)
+    is_shahkar_verified: bool = Field(default=False) # Added
     background_check_status: BackgroundCheckStatus = Field(default=BackgroundCheckStatus.PENDING)
     emergency_contact_name: Optional[str] = None
     emergency_contact_phone: Optional[str] = None
