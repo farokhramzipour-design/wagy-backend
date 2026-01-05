@@ -9,6 +9,7 @@ from app.schemas.sitter import (
     SitterContentUpdate, SitterPricingUpdate, SitterGalleryDelete
 )
 from app.services.auth_service import request_mobile_otp, verify_mobile_otp_login
+from app.services.verification_service import verify_shahkar
 from typing import List
 import os
 
@@ -38,51 +39,52 @@ def update_step(profile: SitterProfile, step: int):
     if step > profile.onboarding_step:
         profile.onboarding_step = step
 
-def update_personal_info(session: Session, user_id: UUID, data: SitterPersonalInfoUpdate):
+async def update_personal_info(session: Session, user_id: UUID, data: SitterPersonalInfoUpdate):
     profile = get_or_create_profile(session, user_id)
     user = session.get(User, user_id)
     
-    # Handle phone verification logic
+    # Determine phone number to use for verification
+    phone_to_verify = data.phone if data.phone else (profile.phone or user.phone_number)
+    
+    # Shahkar Verification if government_id_number is provided
+    if data.government_id_number:
+        if not phone_to_verify:
+             raise HTTPException(status_code=400, detail="Phone number is required for identity verification")
+             
+        try:
+            shahkar_response = await verify_shahkar(phone_to_verify, data.government_id_number)
+            # Check if matched is true
+            # Response structure: {"response_body": {"data": {"matched": true}, ...}, "result": 1}
+            matched = False
+            if shahkar_response.get("result") == 1:
+                data_body = shahkar_response.get("response_body", {}).get("data", {})
+                if data_body and data_body.get("matched") is True:
+                    matched = True
+            
+            if not matched:
+                raise HTTPException(status_code=400, detail="Phone number and national ID do not match")
+                
+        except HTTPException as e:
+            raise e
+        except Exception as e:
+            # Log error?
+            raise HTTPException(status_code=500, detail=f"Identity verification failed: {str(e)}")
+
+    # Handle phone verification logic (OTP)
     if data.phone and data.phone != user.phone_number:
-        # If user is trying to update phone number
-        # We should trigger OTP verification.
-        # However, this function is a PATCH update. It expects the update to happen immediately.
-        # If we need OTP, we can't update immediately.
-        
-        # Option 1: Return an error saying "Phone verification required" and trigger OTP.
-        # But the frontend might expect a specific flow.
-        
-        # Let's assume the frontend calls a separate endpoint to verify the new phone first?
-        # Or, we can send OTP here and return a status indicating OTP sent.
-        
-        # But the prompt says: "if he or she didnt login with phone number should verify his phone number using otp"
-        
-        # Let's implement this:
-        # If phone is provided and different:
-        # 1. Send OTP to the new phone.
-        # 2. Do NOT update the phone in profile yet.
-        # 3. Return a message or status code indicating OTP sent.
-        
-        # But this function returns SitterProfileResponse.
-        # We might need to raise an HTTPException with a specific detail code that the frontend can handle.
-        
-        # Alternatively, we can just send the OTP and expect the user to call another endpoint to verify it.
-        # Let's try to send OTP and raise an exception or return a special response.
-        # Raising exception is cleaner for flow control if we want to stop the update.
-        
         request_mobile_otp(data.phone)
         raise HTTPException(status_code=403, detail="Phone number verification required. OTP sent to the new number.")
         
     # If phone is same or not provided, proceed with update
     for key, value in data.dict(exclude_unset=True).items():
         if key == 'phone':
-             continue # Skip phone update here, it should be updated via verification or if it matches user.phone_number
+             continue # Skip phone update here
         setattr(profile, key, value)
     
     # If phone matches user.phone_number, we can sync it to profile
     if user.phone_number:
         profile.phone = user.phone_number
-        profile.is_phone_verified = True # Ensure this is true if matching user's verified phone
+        profile.is_phone_verified = True
 
     update_step(profile, 2) # Completed Step 2
     
@@ -92,17 +94,6 @@ def update_personal_info(session: Session, user_id: UUID, data: SitterPersonalIn
     return profile
 
 def verify_profile_phone_update(session: Session, user_id: UUID, phone: str, otp: str):
-    # Verify OTP
-    # We can reuse verify_mobile_otp_login logic but we don't want to login, just verify.
-    # verify_mobile_otp_login does login/registration.
-    # We need a simple verify function.
-    
-    # Let's assume verify_mobile_otp_login verifies the OTP with the provider.
-    # We can extract the verification part or call the provider directly.
-    # Since verify_mobile_otp_login is coupled with login logic, let's duplicate the verification call here or refactor.
-    # I'll use the request logic directly here for simplicity as I can't easily refactor auth_service without reading it again fully.
-    # Actually I read it. verify_mobile_otp_login calls http_requests.put(MOBILE_OTP_URL, ...)
-    
     import requests as http_requests
     MOBILE_OTP_URL = "https://api-staging.hyperlikes.ir/public/core/apiv1/custom_codes"
     
@@ -122,7 +113,7 @@ def verify_profile_phone_update(session: Session, user_id: UUID, phone: str, otp
     
     profile = get_or_create_profile(session, user_id)
     profile.phone = phone
-    profile.is_phone_verified = True # Set flag to true
+    profile.is_phone_verified = True
     session.add(profile)
     
     session.commit()
