@@ -157,6 +157,16 @@ async def upload_government_id(
          
     return profile
 
+@router.post("/upload-id-document", response_model=SitterProfileResponse)
+async def upload_id_document(
+    request: Request,
+    file: UploadFile = File(...),
+    user_id: UUID = Depends(get_current_user_id),
+    session: Session = Depends(get_session)
+):
+    # Alias for upload-government-id to match the curl request
+    return await upload_government_id(request, file, user_id, session)
+
 @router.post("/upload-gallery-photos", response_model=SitterProfileResponse)
 async def upload_gallery_photos(
     request: Request,
