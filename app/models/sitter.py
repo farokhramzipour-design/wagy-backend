@@ -96,6 +96,10 @@ class SitterProfile(SQLModel, table=True):
     phone: str
     email: Optional[str] = None
     government_id_type: Optional[GovernmentIdType] = None
+    government_id_number: Optional[str] = None
+    government_id_image: Optional[str] = None
+    address: Optional[str] = None
+    postal_code: Optional[str] = None # Added postal_code
     id_verified: bool = Field(default=False)
     background_check_status: BackgroundCheckStatus = Field(default=BackgroundCheckStatus.PENDING)
     emergency_contact_name: Optional[str] = None
