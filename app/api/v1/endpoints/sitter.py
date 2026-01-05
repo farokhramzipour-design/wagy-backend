@@ -69,7 +69,7 @@ async def update_personal_info(
     user_id: UUID = Depends(get_current_user_id),
     session: Session = Depends(get_session)
 ):
-    return sitter_service.update_personal_info(session, user_id, data)
+    return await sitter_service.update_personal_info(session, user_id, data)
 
 @router.post("/verify-phone-update", response_model=SitterProfileResponse)
 async def verify_phone_update(
