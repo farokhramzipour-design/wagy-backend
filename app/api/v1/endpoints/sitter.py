@@ -4,7 +4,7 @@ from app.db.session import get_session
 from app.core.security import get_current_user_token
 from app.core.config import settings
 from jose import jwt
-from uuid import UUID
+from uuid import UUID, uuid4
 from app.schemas.sitter import (
     SitterPersonalInfoUpdate, SitterLocationUpdate, SitterBoardingUpdate,
     SitterWalkingUpdate, SitterExperienceUpdate, SitterHomeUpdate,
@@ -13,6 +13,7 @@ from app.schemas.sitter import (
 from app.services import sitter_service
 import shutil
 import os
+from typing import List
 
 router = APIRouter()
 
@@ -26,6 +27,18 @@ def get_current_user_id(token: str = Depends(get_current_user_token)) -> UUID:
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+def get_full_url(request: Request, path: str) -> str:
+    if not path:
+        return path
+    if path.startswith("http"):
+        return path
+    base_url = str(request.base_url).rstrip("/")
+    # Ensure path doesn't start with / if base_url ends with / (though rstrip handles that)
+    # But path might be relative like "uploads/..."
+    if not path.startswith("/"):
+        path = "/" + path
+    return f"{base_url}{path}"
+
 @router.get("/me", response_model=SitterProfileResponse)
 async def get_my_profile(
     request: Request,
@@ -33,10 +46,12 @@ async def get_my_profile(
     session: Session = Depends(get_session)
 ):
     profile = sitter_service.get_profile(session, user_id)
-    if profile.profile_photo and not profile.profile_photo.startswith("http"):
-         # Construct full URL for local files
-         base_url = str(request.base_url).rstrip("/")
-         profile.profile_photo = f"{base_url}/{profile.profile_photo}"
+    if profile.profile_photo:
+         profile.profile_photo = get_full_url(request, profile.profile_photo)
+    
+    if profile.photo_gallery:
+        profile.photo_gallery = [get_full_url(request, p) for p in profile.photo_gallery]
+        
     return profile
 
 @router.patch("/personal-info", response_model=SitterProfileResponse)
@@ -59,7 +74,6 @@ async def upload_profile_photo(
     os.makedirs(upload_dir, exist_ok=True)
     
     # Clean up previous photos for this user
-    # Remove any existing file that starts with the user_id to avoid duplicates (e.g. .jpg vs .png)
     for filename in os.listdir(upload_dir):
         if filename.startswith(str(user_id)):
             file_path = os.path.join(upload_dir, filename)
@@ -67,10 +81,9 @@ async def upload_profile_photo(
                 os.remove(file_path)
     
     # Generate file path
-    # Use os.path.splitext to safely get extension
     _, file_extension = os.path.splitext(file.filename)
     if not file_extension:
-        file_extension = ".jpg" # Default fallback
+        file_extension = ".jpg"
         
     file_name = f"{user_id}{file_extension}"
     file_path = f"{upload_dir}/{file_name}"
@@ -83,10 +96,53 @@ async def upload_profile_photo(
     profile = sitter_service.update_profile_photo(session, user_id, file_path)
     
     # Return full URL in response
-    if profile.profile_photo and not profile.profile_photo.startswith("http"):
-         base_url = str(request.base_url).rstrip("/")
-         profile.profile_photo = f"{base_url}/{profile.profile_photo}"
+    if profile.profile_photo:
+         profile.profile_photo = get_full_url(request, profile.profile_photo)
          
+    return profile
+
+@router.post("/upload-gallery-photos", response_model=SitterProfileResponse)
+async def upload_gallery_photos(
+    request: Request,
+    files: List[UploadFile] = File(...),
+    user_id: UUID = Depends(get_current_user_id),
+    session: Session = Depends(get_session)
+):
+    # Ensure upload directory exists
+    upload_dir = "uploads/gallery_photos"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    saved_paths = []
+    
+    for file in files:
+        # Generate unique file name
+        _, file_extension = os.path.splitext(file.filename)
+        if not file_extension:
+            file_extension = ".jpg"
+            
+        file_name = f"{user_id}_{uuid4()}{file_extension}"
+        file_path = f"{upload_dir}/{file_name}"
+        
+        # Save file
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        saved_paths.append(file_path)
+        
+    # Update profile with file paths
+    try:
+        profile = sitter_service.add_gallery_photos(session, user_id, saved_paths)
+    except HTTPException as e:
+        # If error (e.g. too many photos), clean up uploaded files
+        for path in saved_paths:
+            if os.path.exists(path):
+                os.remove(path)
+        raise e
+    
+    # Return full URLs
+    if profile.photo_gallery:
+        profile.photo_gallery = [get_full_url(request, p) for p in profile.photo_gallery]
+
     return profile
 
 @router.patch("/location", response_model=SitterProfileResponse)
