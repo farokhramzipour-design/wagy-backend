@@ -109,6 +109,14 @@ def verify_profile_phone_update(session: Session, user_id: UUID, phone: str, otp
         
     # OTP Verified. Update User and Profile.
     user = session.get(User, user_id)
+    
+    # Check if phone number is already taken by another user
+    existing_user_statement = select(User).where(User.phone_number == phone)
+    existing_user = session.exec(existing_user_statement).first()
+    
+    if existing_user and existing_user.id != user_id:
+        raise HTTPException(status_code=400, detail="Phone number already in use by another account")
+
     user.phone_number = phone
     user.is_phone_verified = True
     session.add(user)
