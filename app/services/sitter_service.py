@@ -12,6 +12,10 @@ from app.services.auth_service import request_mobile_otp, verify_mobile_otp_logi
 from app.services.verification_service import verify_shahkar
 from typing import List
 import os
+import logging
+import traceback
+
+logger = logging.getLogger(__name__)
 
 def get_or_create_profile(session: Session, user_id: UUID) -> SitterProfile:
     statement = select(SitterProfile).where(SitterProfile.user_id == user_id)
@@ -40,60 +44,70 @@ def update_step(profile: SitterProfile, step: int):
         profile.onboarding_step = step
 
 async def update_personal_info(session: Session, user_id: UUID, data: SitterPersonalInfoUpdate):
-    profile = get_or_create_profile(session, user_id)
-    user = session.get(User, user_id)
-    
-    # Determine phone number to use for verification
-    phone_to_verify = data.phone if data.phone else (profile.phone or user.phone_number)
-    
-    # Shahkar Verification if government_id_number is provided
-    if data.government_id_number:
-        if not phone_to_verify:
-             raise HTTPException(status_code=400, detail="Phone number is required for identity verification")
-             
-        try:
-            shahkar_response = await verify_shahkar(phone_to_verify, data.government_id_number)
-            # Check if matched is true
-            # Response structure: {"response_body": {"data": {"matched": true}, ...}, "result": 1}
-            matched = False
-            if shahkar_response.get("result") == 1:
-                data_body = shahkar_response.get("response_body", {}).get("data", {})
-                if data_body and data_body.get("matched") is True:
-                    matched = True
-            
-            if matched:
-                profile.is_shahkar_verified = True
-            else:
-                raise HTTPException(status_code=400, detail="Phone number and national ID do not match")
-                
-        except HTTPException as e:
-            raise e
-        except Exception as e:
-            # Log error?
-            raise HTTPException(status_code=500, detail=f"Identity verification failed: {str(e)}")
-
-    # Handle phone verification logic (OTP)
-    if data.phone and data.phone != user.phone_number:
-        request_mobile_otp(data.phone)
-        raise HTTPException(status_code=403, detail="Phone number verification required. OTP sent to the new number.")
+    try:
+        logger.info(f"Updating personal info for user {user_id}")
+        profile = get_or_create_profile(session, user_id)
+        user = session.get(User, user_id)
         
-    # If phone is same or not provided, proceed with update
-    for key, value in data.dict(exclude_unset=True).items():
-        if key == 'phone':
-             continue # Skip phone update here
-        setattr(profile, key, value)
-    
-    # If phone matches user.phone_number, we can sync it to profile
-    if user.phone_number:
-        profile.phone = user.phone_number
-        profile.is_phone_verified = True
+        # Determine phone number to use for verification
+        phone_to_verify = data.phone if data.phone else (profile.phone or user.phone_number)
+        
+        # Shahkar Verification if government_id_number is provided
+        if data.government_id_number:
+            logger.info(f"Verifying Shahkar for phone {phone_to_verify} and ID {data.government_id_number}")
+            if not phone_to_verify:
+                 raise HTTPException(status_code=400, detail="Phone number is required for identity verification")
+                 
+            try:
+                shahkar_response = await verify_shahkar(phone_to_verify, data.government_id_number)
+                logger.info(f"Shahkar response: {shahkar_response}")
+                # Check if matched is true
+                # Response structure: {"response_body": {"data": {"matched": true}, ...}, "result": 1}
+                matched = False
+                if shahkar_response.get("result") == 1:
+                    data_body = shahkar_response.get("response_body", {}).get("data", {})
+                    if data_body and data_body.get("matched") is True:
+                        matched = True
+                
+                if matched:
+                    profile.is_shahkar_verified = True
+                else:
+                    raise HTTPException(status_code=400, detail="Phone number and national ID do not match")
+                    
+            except HTTPException as e:
+                logger.error(f"Shahkar verification HTTP error: {e.detail}")
+                raise e
+            except Exception as e:
+                logger.error(f"Shahkar verification failed: {e}")
+                raise HTTPException(status_code=500, detail=f"Identity verification failed: {str(e)}")
 
-    update_step(profile, 2) # Completed Step 2
-    
-    session.add(profile)
-    session.commit()
-    session.refresh(profile)
-    return profile
+        # Handle phone verification logic (OTP)
+        if data.phone and data.phone != user.phone_number:
+            logger.info(f"Phone number change detected. Requesting OTP for {data.phone}")
+            request_mobile_otp(data.phone)
+            raise HTTPException(status_code=403, detail="Phone number verification required. OTP sent to the new number.")
+            
+        # If phone is same or not provided, proceed with update
+        for key, value in data.dict(exclude_unset=True).items():
+            if key == 'phone':
+                 continue # Skip phone update here
+            setattr(profile, key, value)
+        
+        # If phone matches user.phone_number, we can sync it to profile
+        if user.phone_number:
+            profile.phone = user.phone_number
+            profile.is_phone_verified = True
+
+        update_step(profile, 2) # Completed Step 2
+        
+        session.add(profile)
+        session.commit()
+        session.refresh(profile)
+        return profile
+    except Exception as e:
+        logger.error(f"Error in update_personal_info: {e}")
+        traceback.print_exc()
+        raise e
 
 def verify_profile_phone_update(session: Session, user_id: UUID, phone: str, otp: str):
     import requests as http_requests
