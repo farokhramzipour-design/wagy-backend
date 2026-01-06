@@ -9,7 +9,7 @@ from app.schemas.sitter import (
     SitterPersonalInfoUpdate, SitterLocationUpdate, SitterBoardingUpdate,
     SitterWalkingUpdate, SitterExperienceUpdate, SitterHomeUpdate,
     SitterContentUpdate, SitterPricingUpdate, SitterProfileResponse,
-    SitterGalleryDelete
+    SitterGalleryDelete, SitterHouseSittingUpdate, SitterDropInUpdate, SitterDayCareUpdate
 )
 from app.services import sitter_service
 from pydantic import BaseModel
@@ -249,6 +249,30 @@ async def update_walking(
     session: Session = Depends(get_session)
 ):
     return sitter_service.update_walking_service(session, user_id, data)
+
+@router.patch("/services/house-sitting", response_model=SitterProfileResponse)
+async def update_house_sitting(
+    data: SitterHouseSittingUpdate,
+    user_id: UUID = Depends(get_current_user_id),
+    session: Session = Depends(get_session)
+):
+    return sitter_service.update_house_sitting_service(session, user_id, data)
+
+@router.patch("/services/drop-in", response_model=SitterProfileResponse)
+async def update_drop_in(
+    data: SitterDropInUpdate,
+    user_id: UUID = Depends(get_current_user_id),
+    session: Session = Depends(get_session)
+):
+    return sitter_service.update_drop_in_service(session, user_id, data)
+
+@router.patch("/services/daycare", response_model=SitterProfileResponse)
+async def update_daycare(
+    data: SitterDayCareUpdate,
+    user_id: UUID = Depends(get_current_user_id),
+    session: Session = Depends(get_session)
+):
+    return sitter_service.update_daycare_service(session, user_id, data)
 
 @router.patch("/experience", response_model=SitterProfileResponse)
 async def update_experience(

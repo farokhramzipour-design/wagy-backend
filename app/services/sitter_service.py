@@ -6,7 +6,8 @@ from app.models.user import User
 from app.schemas.sitter import (
     SitterPersonalInfoUpdate, SitterLocationUpdate, SitterBoardingUpdate,
     SitterWalkingUpdate, SitterExperienceUpdate, SitterHomeUpdate,
-    SitterContentUpdate, SitterPricingUpdate, SitterGalleryDelete
+    SitterContentUpdate, SitterPricingUpdate, SitterGalleryDelete,
+    SitterHouseSittingUpdate, SitterDropInUpdate, SitterDayCareUpdate
 )
 from app.services.auth_service import request_mobile_otp, verify_mobile_otp_login
 from app.services.verification_service import verify_shahkar
@@ -14,6 +15,7 @@ from typing import List
 import os
 import logging
 import traceback
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +80,7 @@ async def update_personal_info(session: Session, user_id: UUID, data: SitterPers
                     # We need to commit these changes before raising exception so they persist
                     session.add(profile)
                     session.commit()
-
+                    
                     raise HTTPException(status_code=400, detail="Phone number and national ID do not match")
                     
             except HTTPException as e:
@@ -242,6 +244,42 @@ def update_boarding_service(session: Session, user_id: UUID, data: SitterBoardin
     return profile
 
 def update_walking_service(session: Session, user_id: UUID, data: SitterWalkingUpdate):
+    profile = get_or_create_profile(session, user_id)
+    for key, value in data.dict(exclude_unset=True).items():
+        setattr(profile, key, value)
+    
+    update_step(profile, 5) # Completed Step 5 (Services)
+    
+    session.add(profile)
+    session.commit()
+    session.refresh(profile)
+    return profile
+
+def update_house_sitting_service(session: Session, user_id: UUID, data: SitterHouseSittingUpdate):
+    profile = get_or_create_profile(session, user_id)
+    for key, value in data.dict(exclude_unset=True).items():
+        setattr(profile, key, value)
+    
+    update_step(profile, 5) # Completed Step 5 (Services)
+    
+    session.add(profile)
+    session.commit()
+    session.refresh(profile)
+    return profile
+
+def update_drop_in_service(session: Session, user_id: UUID, data: SitterDropInUpdate):
+    profile = get_or_create_profile(session, user_id)
+    for key, value in data.dict(exclude_unset=True).items():
+        setattr(profile, key, value)
+    
+    update_step(profile, 5) # Completed Step 5 (Services)
+    
+    session.add(profile)
+    session.commit()
+    session.refresh(profile)
+    return profile
+
+def update_daycare_service(session: Session, user_id: UUID, data: SitterDayCareUpdate):
     profile = get_or_create_profile(session, user_id)
     for key, value in data.dict(exclude_unset=True).items():
         setattr(profile, key, value)
