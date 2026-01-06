@@ -62,7 +62,7 @@ async def update_personal_info(session: Session, user_id: UUID, data: SitterPers
                  raise HTTPException(status_code=400, detail="Phone number is required for identity verification")
                  
             try:
-                shahkar_response = await verify_shahkar(phone_to_verify, data.government_id_number)
+                shahkar_response = await verify_shahkar('0'+phone_to_verify, data.government_id_number)
                 logger.info(f"Shahkar response: {shahkar_response}")
                 # Check if matched is true
                 # Response structure: {"response_body": {"data": {"matched": true}, ...}, "result": 1}
