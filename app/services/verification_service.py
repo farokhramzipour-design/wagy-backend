@@ -16,7 +16,8 @@ async def verify_shahkar(mobile: str, national_code: str):
         "national_code": national_code
     }
 
-    async with httpx.AsyncClient() as client:
+    # Increase timeout to 30 seconds
+    async with httpx.AsyncClient(timeout=30.0) as client:
         try:
             response = await client.post(ZOHAL_API_URL_SHAHKAR, json=payload, headers=headers)
             response.raise_for_status()
@@ -36,7 +37,8 @@ async def inquiry_postal_code(postal_code: str):
         "postal_code": postal_code
     }
 
-    async with httpx.AsyncClient() as client:
+    # Increase timeout to 30 seconds
+    async with httpx.AsyncClient(timeout=30.0) as client:
         try:
             response = await client.post(ZOHAL_API_URL_POSTAL, json=payload, headers=headers)
             response.raise_for_status()
