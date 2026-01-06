@@ -1,7 +1,7 @@
 import httpx
 from fastapi import HTTPException
 
-ZOHAL_API_URL_SHAHKAR = "https://dashboard.zohal.io/services/inquiry/shahkar"
+ZOHAL_API_URL_SHAHKAR = "https://service.zohal.io/api/v0/services/inquiry/shahkar"
 ZOHAL_API_URL_POSTAL = "https://service.zohal.io/api/v0/services/inquiry/postal_code_inquiry"
 ZOHAL_API_TOKEN = "2ba20e8b0699cb7e60937a198218049ccbc8dbe4"
 
