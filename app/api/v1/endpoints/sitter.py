@@ -9,7 +9,8 @@ from app.schemas.sitter import (
     SitterPersonalInfoUpdate, SitterLocationUpdate, SitterBoardingUpdate,
     SitterWalkingUpdate, SitterExperienceUpdate, SitterHomeUpdate,
     SitterContentUpdate, SitterPricingUpdate, SitterProfileResponse,
-    SitterGalleryDelete, SitterHouseSittingUpdate, SitterDropInUpdate, SitterDayCareUpdate
+    SitterGalleryDelete, SitterHouseSittingUpdate, SitterDropInUpdate, SitterDayCareUpdate,
+    SitterServiceSelectionUpdate
 )
 from app.services import sitter_service
 from pydantic import BaseModel
@@ -77,7 +78,7 @@ async def verify_phone_update(
     user_id: UUID = Depends(get_current_user_id),
     session: Session = Depends(get_session)
 ):
-    return sitter_service.verify_profile_phone_update(session, user_id, data.phone, data.otp)
+    return await sitter_service.verify_profile_phone_update(session, user_id, data.phone, data.otp)
 
 @router.post("/upload-profile-photo", response_model=SitterProfileResponse)
 async def upload_profile_photo(
@@ -233,6 +234,14 @@ async def update_location(
     session: Session = Depends(get_session)
 ):
     return sitter_service.update_location(session, user_id, data)
+
+@router.patch("/services/selection", response_model=SitterProfileResponse)
+async def update_service_selection(
+    data: SitterServiceSelectionUpdate,
+    user_id: UUID = Depends(get_current_user_id),
+    session: Session = Depends(get_session)
+):
+    return sitter_service.update_service_selection(session, user_id, data)
 
 @router.patch("/services/boarding", response_model=SitterProfileResponse)
 async def update_boarding(

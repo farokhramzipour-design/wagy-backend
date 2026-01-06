@@ -7,7 +7,8 @@ from app.schemas.sitter import (
     SitterPersonalInfoUpdate, SitterLocationUpdate, SitterBoardingUpdate,
     SitterWalkingUpdate, SitterExperienceUpdate, SitterHomeUpdate,
     SitterContentUpdate, SitterPricingUpdate, SitterGalleryDelete,
-    SitterHouseSittingUpdate, SitterDropInUpdate, SitterDayCareUpdate
+    SitterHouseSittingUpdate, SitterDropInUpdate, SitterDayCareUpdate,
+    SitterServiceSelectionUpdate
 )
 from app.services.auth_service import request_mobile_otp, verify_mobile_otp_login
 from app.services.verification_service import verify_shahkar
@@ -225,6 +226,18 @@ def update_location(session: Session, user_id: UUID, data: SitterLocationUpdate)
         setattr(profile, key, value)
     
     update_step(profile, 3) # Completed Step 3
+    
+    session.add(profile)
+    session.commit()
+    session.refresh(profile)
+    return profile
+
+def update_service_selection(session: Session, user_id: UUID, data: SitterServiceSelectionUpdate):
+    profile = get_or_create_profile(session, user_id)
+    for key, value in data.dict(exclude_unset=True).items():
+        setattr(profile, key, value)
+    
+    update_step(profile, 4) # Completed Step 4 (Service Selection)
     
     session.add(profile)
     session.commit()
