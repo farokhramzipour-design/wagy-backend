@@ -14,6 +14,14 @@ def run_fix():
             conn.execute(text("ALTER TABLE sitter_profiles ADD COLUMN IF NOT EXISTS postal_code VARCHAR;"))
             conn.execute(text("ALTER TABLE sitter_profiles ADD COLUMN IF NOT EXISTS is_phone_verified BOOLEAN DEFAULT FALSE;"))
             conn.execute(text("ALTER TABLE sitter_profiles ADD COLUMN IF NOT EXISTS is_shahkar_verified BOOLEAN DEFAULT FALSE;"))
+            
+            # Add supported services flags
+            conn.execute(text("ALTER TABLE sitter_profiles ADD COLUMN IF NOT EXISTS is_boarding_supported BOOLEAN DEFAULT FALSE;"))
+            conn.execute(text("ALTER TABLE sitter_profiles ADD COLUMN IF NOT EXISTS is_house_sitting_supported BOOLEAN DEFAULT FALSE;"))
+            conn.execute(text("ALTER TABLE sitter_profiles ADD COLUMN IF NOT EXISTS is_drop_in_supported BOOLEAN DEFAULT FALSE;"))
+            conn.execute(text("ALTER TABLE sitter_profiles ADD COLUMN IF NOT EXISTS is_dog_walking_supported BOOLEAN DEFAULT FALSE;"))
+            conn.execute(text("ALTER TABLE sitter_profiles ADD COLUMN IF NOT EXISTS is_day_care_supported BOOLEAN DEFAULT FALSE;"))
+
             conn.commit()
             logger.info("Migration fix completed successfully.")
     except Exception as e:

@@ -36,6 +36,7 @@ class SitterLocationUpdate(BaseModel):
 
 # --- Step 5: Service-Specific Setup ---
 class SitterBoardingUpdate(BaseModel):
+    is_boarding_supported: bool
     base_price: float
     boarding_max_pets: int
     boarding_overnight_supervision: bool
@@ -46,12 +47,40 @@ class SitterBoardingUpdate(BaseModel):
     boarding_separation_policy: bool
 
 class SitterWalkingUpdate(BaseModel):
+    is_dog_walking_supported: bool
     walking_duration: WalkDuration
     walking_type: WalkType
     walking_max_dogs: int
     walking_leash_type: LeashType
     walking_gps_tracking: bool
     walking_weather_policy: WeatherPolicy
+
+class SitterHouseSittingUpdate(BaseModel):
+    is_house_sitting_supported: bool
+    house_sitting_overnight: bool
+    house_sitting_daytime_hours: Optional[int] = None
+    house_sitting_mail_collection: bool
+    house_sitting_plant_watering: bool
+    house_sitting_security_check: bool
+    house_sitting_allowed_access: AllowedHomeAccess
+
+class SitterDropInUpdate(BaseModel):
+    is_drop_in_supported: bool
+    drop_in_duration_min: int
+    drop_in_visits_per_day: int
+    drop_in_feeding: bool
+    drop_in_litter_cleaning: bool
+    drop_in_medication: bool
+    drop_in_photo_update: bool
+
+class SitterDayCareUpdate(BaseModel):
+    is_day_care_supported: bool
+    daycare_hours: Dict
+    daycare_rest_periods: bool
+    daycare_structured_play: bool
+    daycare_size_separation: bool
+    daycare_feeding_schedule: bool
+    daycare_nap_area: bool
 
 # --- Step 6: Experience & Skills ---
 class SitterExperienceUpdate(BaseModel):
@@ -178,6 +207,13 @@ class SitterProfileResponse(BaseModel):
     cancellation_policy: Optional[CancellationPolicy]
     payout_method: Optional[PayoutMethod]
     payout_verified: bool
+
+    # Supported Services Flags
+    is_boarding_supported: bool
+    is_house_sitting_supported: bool
+    is_drop_in_supported: bool
+    is_dog_walking_supported: bool
+    is_day_care_supported: bool
 
     # Service-Specific Criteria (Boarding)
     boarding_max_pets: Optional[int]

@@ -12,3 +12,4 @@ requests
 alembic
 fastapi-mail
 python-multipart
+pydantic

@@ -163,6 +163,13 @@ class SitterProfile(SQLModel, table=True):
     photo_gallery: List[str] = Field(default=[], sa_column=Column(ARRAY(String)))
     intro_video: Optional[str] = None
 
+    # Supported Services Flags
+    is_boarding_supported: bool = Field(default=False)
+    is_house_sitting_supported: bool = Field(default=False)
+    is_drop_in_supported: bool = Field(default=False)
+    is_dog_walking_supported: bool = Field(default=False)
+    is_day_care_supported: bool = Field(default=False)
+
     # Service-Specific Criteria (Boarding)
     boarding_max_pets: Optional[int] = None
     boarding_overnight_supervision: bool = Field(default=False)
