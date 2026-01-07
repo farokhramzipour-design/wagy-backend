@@ -11,9 +11,15 @@ async def verify_shahkar(mobile: str, national_code: str):
         "Authorization": f"Bearer {ZOHAL_API_TOKEN}"
     }
 
+    # Ensure mobile and national_code are strings and not None
+    if not mobile:
+        raise HTTPException(status_code=400, detail="Mobile number is required")
+    if not national_code:
+        raise HTTPException(status_code=400, detail="National code is required")
+
     payload = {
-        "mobile": mobile,
-        "national_code": national_code
+        "mobile": str(mobile),
+        "national_code": str(national_code)
     }
 
     # Increase timeout to 30 seconds
@@ -23,6 +29,11 @@ async def verify_shahkar(mobile: str, national_code: str):
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
+            # If the API returns a 500 with a specific error message, we might want to parse it
+            # But for now, just passing the detail is fine.
+            # The specific error "invalid literal for int() with base 10: 'None'" suggests
+            # the upstream API is failing to parse something, possibly because we sent None or a bad format.
+            # By ensuring str() conversion above, we mitigate this on our end.
             raise HTTPException(status_code=e.response.status_code, detail=f"Verification failed: {e.response.text}")
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Internal server error during verification: {str(e)}")
