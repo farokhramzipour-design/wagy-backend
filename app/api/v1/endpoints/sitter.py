@@ -53,6 +53,10 @@ async def get_my_profile(
     session: Session = Depends(get_session)
 ):
     profile = sitter_service.get_profile(session, user_id)
+    
+    # Calculate next step
+    profile.next_step = sitter_service.calculate_next_step(profile)
+    
     if profile.profile_photo:
          profile.profile_photo = get_full_url(request, profile.profile_photo)
     
@@ -70,7 +74,9 @@ async def update_personal_info(
     user_id: UUID = Depends(get_current_user_id),
     session: Session = Depends(get_session)
 ):
-    return await sitter_service.update_personal_info(session, user_id, data)
+    profile = await sitter_service.update_personal_info(session, user_id, data)
+    profile.next_step = sitter_service.calculate_next_step(profile)
+    return profile
 
 @router.post("/verify-phone-update", response_model=SitterProfileResponse)
 async def verify_phone_update(
@@ -78,7 +84,9 @@ async def verify_phone_update(
     user_id: UUID = Depends(get_current_user_id),
     session: Session = Depends(get_session)
 ):
-    return await sitter_service.verify_profile_phone_update(session, user_id, data.phone, data.otp)
+    profile = await sitter_service.verify_profile_phone_update(session, user_id, data.phone, data.otp)
+    profile.next_step = sitter_service.calculate_next_step(profile)
+    return profile
 
 @router.post("/upload-profile-photo", response_model=SitterProfileResponse)
 async def upload_profile_photo(
@@ -112,6 +120,7 @@ async def upload_profile_photo(
         
     # Update profile with file path
     profile = sitter_service.update_profile_photo(session, user_id, file_path)
+    profile.next_step = sitter_service.calculate_next_step(profile)
     
     # Return full URL in response
     if profile.profile_photo:
@@ -151,6 +160,7 @@ async def upload_government_id(
         
     # Update profile with file path
     profile = sitter_service.update_government_id_image(session, user_id, file_path)
+    profile.next_step = sitter_service.calculate_next_step(profile)
     
     # Return full URL in response
     if profile.government_id_image:
@@ -199,6 +209,7 @@ async def upload_gallery_photos(
     # Update profile with file paths
     try:
         profile = sitter_service.add_gallery_photos(session, user_id, saved_paths)
+        profile.next_step = sitter_service.calculate_next_step(profile)
     except HTTPException as e:
         # If error (e.g. too many photos), clean up uploaded files
         for path in saved_paths:
@@ -220,6 +231,7 @@ async def delete_gallery_photos(
     session: Session = Depends(get_session)
 ):
     profile = sitter_service.delete_gallery_photos(session, user_id, data)
+    profile.next_step = sitter_service.calculate_next_step(profile)
     
     # Return full URLs
     if profile.photo_gallery:
@@ -233,7 +245,9 @@ async def update_location(
     user_id: UUID = Depends(get_current_user_id),
     session: Session = Depends(get_session)
 ):
-    return sitter_service.update_location(session, user_id, data)
+    profile = sitter_service.update_location(session, user_id, data)
+    profile.next_step = sitter_service.calculate_next_step(profile)
+    return profile
 
 @router.patch("/services/selection", response_model=SitterProfileResponse)
 async def update_service_selection(
@@ -241,7 +255,9 @@ async def update_service_selection(
     user_id: UUID = Depends(get_current_user_id),
     session: Session = Depends(get_session)
 ):
-    return sitter_service.update_service_selection(session, user_id, data)
+    profile = sitter_service.update_service_selection(session, user_id, data)
+    profile.next_step = sitter_service.calculate_next_step(profile)
+    return profile
 
 @router.patch("/services/boarding", response_model=SitterProfileResponse)
 async def update_boarding(
@@ -249,7 +265,9 @@ async def update_boarding(
     user_id: UUID = Depends(get_current_user_id),
     session: Session = Depends(get_session)
 ):
-    return sitter_service.update_boarding_service(session, user_id, data)
+    profile = sitter_service.update_boarding_service(session, user_id, data)
+    profile.next_step = sitter_service.calculate_next_step(profile)
+    return profile
 
 @router.patch("/services/walking", response_model=SitterProfileResponse)
 async def update_walking(
@@ -257,7 +275,9 @@ async def update_walking(
     user_id: UUID = Depends(get_current_user_id),
     session: Session = Depends(get_session)
 ):
-    return sitter_service.update_walking_service(session, user_id, data)
+    profile = sitter_service.update_walking_service(session, user_id, data)
+    profile.next_step = sitter_service.calculate_next_step(profile)
+    return profile
 
 @router.patch("/services/house-sitting", response_model=SitterProfileResponse)
 async def update_house_sitting(
@@ -265,7 +285,9 @@ async def update_house_sitting(
     user_id: UUID = Depends(get_current_user_id),
     session: Session = Depends(get_session)
 ):
-    return sitter_service.update_house_sitting_service(session, user_id, data)
+    profile = sitter_service.update_house_sitting_service(session, user_id, data)
+    profile.next_step = sitter_service.calculate_next_step(profile)
+    return profile
 
 @router.patch("/services/drop-in", response_model=SitterProfileResponse)
 async def update_drop_in(
@@ -273,7 +295,9 @@ async def update_drop_in(
     user_id: UUID = Depends(get_current_user_id),
     session: Session = Depends(get_session)
 ):
-    return sitter_service.update_drop_in_service(session, user_id, data)
+    profile = sitter_service.update_drop_in_service(session, user_id, data)
+    profile.next_step = sitter_service.calculate_next_step(profile)
+    return profile
 
 @router.patch("/services/daycare", response_model=SitterProfileResponse)
 async def update_daycare(
@@ -281,7 +305,9 @@ async def update_daycare(
     user_id: UUID = Depends(get_current_user_id),
     session: Session = Depends(get_session)
 ):
-    return sitter_service.update_daycare_service(session, user_id, data)
+    profile = sitter_service.update_daycare_service(session, user_id, data)
+    profile.next_step = sitter_service.calculate_next_step(profile)
+    return profile
 
 @router.patch("/experience", response_model=SitterProfileResponse)
 async def update_experience(
@@ -289,7 +315,9 @@ async def update_experience(
     user_id: UUID = Depends(get_current_user_id),
     session: Session = Depends(get_session)
 ):
-    return sitter_service.update_experience(session, user_id, data)
+    profile = sitter_service.update_experience(session, user_id, data)
+    profile.next_step = sitter_service.calculate_next_step(profile)
+    return profile
 
 @router.patch("/home", response_model=SitterProfileResponse)
 async def update_home(
@@ -297,7 +325,9 @@ async def update_home(
     user_id: UUID = Depends(get_current_user_id),
     session: Session = Depends(get_session)
 ):
-    return sitter_service.update_home(session, user_id, data)
+    profile = sitter_service.update_home(session, user_id, data)
+    profile.next_step = sitter_service.calculate_next_step(profile)
+    return profile
 
 @router.patch("/content", response_model=SitterProfileResponse)
 async def update_content(
@@ -305,7 +335,9 @@ async def update_content(
     user_id: UUID = Depends(get_current_user_id),
     session: Session = Depends(get_session)
 ):
-    return sitter_service.update_content(session, user_id, data)
+    profile = sitter_service.update_content(session, user_id, data)
+    profile.next_step = sitter_service.calculate_next_step(profile)
+    return profile
 
 @router.patch("/pricing", response_model=SitterProfileResponse)
 async def update_pricing(
@@ -313,4 +345,6 @@ async def update_pricing(
     user_id: UUID = Depends(get_current_user_id),
     session: Session = Depends(get_session)
 ):
-    return sitter_service.update_pricing(session, user_id, data)
+    profile = sitter_service.update_pricing(session, user_id, data)
+    profile.next_step = sitter_service.calculate_next_step(profile)
+    return profile

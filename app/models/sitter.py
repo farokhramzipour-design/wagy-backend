@@ -102,13 +102,24 @@ class SitterProfile(SQLModel, table=True):
     postal_code: Optional[str] = None
     id_verified: bool = Field(default=False)
     is_phone_verified: bool = Field(default=False)
-    is_shahkar_verified: bool = Field(default=False) # Added
+    is_shahkar_verified: bool = Field(default=False)
     background_check_status: BackgroundCheckStatus = Field(default=BackgroundCheckStatus.PENDING)
     emergency_contact_name: Optional[str] = None
     emergency_contact_phone: Optional[str] = None
 
-    # Onboarding Progress
-    onboarding_step: int = Field(default=1) # Tracks the last completed step (1-12)
+    # Onboarding Completion Flags
+    is_personal_info_completed: bool = Field(default=False)
+    is_location_completed: bool = Field(default=False)
+    is_services_selected: bool = Field(default=False)
+    is_boarding_completed: bool = Field(default=False)
+    is_house_sitting_completed: bool = Field(default=False)
+    is_drop_in_completed: bool = Field(default=False)
+    is_dog_walking_completed: bool = Field(default=False)
+    is_day_care_completed: bool = Field(default=False)
+    is_experience_completed: bool = Field(default=False)
+    is_home_completed: bool = Field(default=False)
+    is_content_completed: bool = Field(default=False)
+    is_pricing_completed: bool = Field(default=False)
 
     # Location & Availability
     country: Optional[str] = None
