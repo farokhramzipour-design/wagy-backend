@@ -34,6 +34,14 @@ class SitterLocationUpdate(BaseModel):
     available_time_slots: Dict
     blackout_dates: List[date]
 
+# --- Step 4: Service Selection ---
+class SitterServiceSelectionUpdate(BaseModel):
+    is_boarding_supported: bool
+    is_house_sitting_supported: bool
+    is_drop_in_supported: bool
+    is_dog_walking_supported: bool
+    is_day_care_supported: bool
+
 # --- Step 5: Service-Specific Setup ---
 class SitterBoardingUpdate(BaseModel):
     is_boarding_supported: bool
