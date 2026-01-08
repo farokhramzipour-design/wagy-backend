@@ -272,3 +272,6 @@ class SitterProfileResponse(BaseModel):
     training_packages: Dict = {}
     training_off_leash: bool
     training_behavioral_mod: bool
+
+    # Next Step Logic
+    next_step: Optional[str] = None

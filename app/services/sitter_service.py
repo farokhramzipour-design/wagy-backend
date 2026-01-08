@@ -12,7 +12,7 @@ from app.schemas.sitter import (
 )
 from app.services.auth_service import request_mobile_otp, verify_mobile_otp_login
 from app.services.verification_service import verify_shahkar
-from typing import List
+from typing import List, Optional
 import os
 import logging
 import traceback
@@ -45,6 +45,37 @@ def update_step(profile: SitterProfile, step: int):
     # This allows users to go back without resetting their progress indicator
     if step > profile.onboarding_step:
         profile.onboarding_step = step
+
+def calculate_next_step(profile: SitterProfile) -> str:
+    if not profile.is_personal_info_completed:
+        return "PersonalInfoForm"
+    if not profile.is_location_completed:
+        return "LocationForm"
+    if not profile.is_services_selected:
+        return "ServicesForm"
+    
+    # Service specific forms
+    if profile.is_boarding_supported and not profile.is_boarding_completed:
+        return "BoardingForm"
+    if profile.is_house_sitting_supported and not profile.is_house_sitting_completed:
+        return "HouseSittingForm"
+    if profile.is_drop_in_supported and not profile.is_drop_in_completed:
+        return "DropInForm"
+    if profile.is_dog_walking_supported and not profile.is_dog_walking_completed:
+        return "WalkingForm"
+    if profile.is_day_care_supported and not profile.is_day_care_completed:
+        return "DayCareForm"
+        
+    if not profile.is_experience_completed:
+        return "ExperienceForm"
+    if not profile.is_home_completed:
+        return "HomeForm"
+    if not profile.is_content_completed:
+        return "ContentForm"
+    if not profile.is_pricing_completed:
+        return "PricingForm"
+        
+    return "Review"
 
 async def update_personal_info(session: Session, user_id: UUID, data: SitterPersonalInfoUpdate):
     try:
@@ -108,6 +139,7 @@ async def update_personal_info(session: Session, user_id: UUID, data: SitterPers
             profile.phone = user.phone_number
             profile.is_phone_verified = True
 
+        profile.is_personal_info_completed = True
         update_step(profile, 2) # Completed Step 2
         
         session.add(profile)
@@ -225,6 +257,7 @@ def update_location(session: Session, user_id: UUID, data: SitterLocationUpdate)
     for key, value in data.dict(exclude_unset=True).items():
         setattr(profile, key, value)
     
+    profile.is_location_completed = True
     update_step(profile, 3) # Completed Step 3
     
     session.add(profile)
@@ -237,6 +270,7 @@ def update_service_selection(session: Session, user_id: UUID, data: SitterServic
     for key, value in data.dict(exclude_unset=True).items():
         setattr(profile, key, value)
     
+    profile.is_services_selected = True
     update_step(profile, 4) # Completed Step 4 (Service Selection)
     
     session.add(profile)
@@ -249,6 +283,7 @@ def update_boarding_service(session: Session, user_id: UUID, data: SitterBoardin
     for key, value in data.dict(exclude_unset=True).items():
         setattr(profile, key, value)
     
+    profile.is_boarding_completed = True
     update_step(profile, 5) # Completed Step 5 (Services)
     
     session.add(profile)
@@ -261,6 +296,7 @@ def update_walking_service(session: Session, user_id: UUID, data: SitterWalkingU
     for key, value in data.dict(exclude_unset=True).items():
         setattr(profile, key, value)
     
+    profile.is_dog_walking_completed = True
     update_step(profile, 5) # Completed Step 5 (Services)
     
     session.add(profile)
@@ -273,6 +309,7 @@ def update_house_sitting_service(session: Session, user_id: UUID, data: SitterHo
     for key, value in data.dict(exclude_unset=True).items():
         setattr(profile, key, value)
     
+    profile.is_house_sitting_completed = True
     update_step(profile, 5) # Completed Step 5 (Services)
     
     session.add(profile)
@@ -285,6 +322,7 @@ def update_drop_in_service(session: Session, user_id: UUID, data: SitterDropInUp
     for key, value in data.dict(exclude_unset=True).items():
         setattr(profile, key, value)
     
+    profile.is_drop_in_completed = True
     update_step(profile, 5) # Completed Step 5 (Services)
     
     session.add(profile)
@@ -297,6 +335,7 @@ def update_daycare_service(session: Session, user_id: UUID, data: SitterDayCareU
     for key, value in data.dict(exclude_unset=True).items():
         setattr(profile, key, value)
     
+    profile.is_day_care_completed = True
     update_step(profile, 5) # Completed Step 5 (Services)
     
     session.add(profile)
@@ -309,6 +348,7 @@ def update_experience(session: Session, user_id: UUID, data: SitterExperienceUpd
     for key, value in data.dict(exclude_unset=True).items():
         setattr(profile, key, value)
     
+    profile.is_experience_completed = True
     update_step(profile, 6) # Completed Step 6
     
     session.add(profile)
@@ -321,6 +361,7 @@ def update_home(session: Session, user_id: UUID, data: SitterHomeUpdate):
     for key, value in data.dict(exclude_unset=True).items():
         setattr(profile, key, value)
     
+    profile.is_home_completed = True
     update_step(profile, 7) # Completed Step 7
     
     session.add(profile)
@@ -333,6 +374,7 @@ def update_content(session: Session, user_id: UUID, data: SitterContentUpdate):
     for key, value in data.dict(exclude_unset=True).items():
         setattr(profile, key, value)
     
+    profile.is_content_completed = True
     update_step(profile, 9) # Completed Step 9
     
     session.add(profile)
@@ -345,6 +387,7 @@ def update_pricing(session: Session, user_id: UUID, data: SitterPricingUpdate):
     for key, value in data.dict(exclude_unset=True).items():
         setattr(profile, key, value)
     
+    profile.is_pricing_completed = True
     update_step(profile, 10) # Completed Step 10
 
     session.add(profile)
